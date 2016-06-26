@@ -5,43 +5,43 @@ Every request require a token unless authentication and registration.*
 
 ## Users
 
-#### Authentication
+*  **Authentication**
 
-**<code>POST</code> /auth**
+    **<code>POST</code> /auth**
 
-*Parameters :*
-- Email
-- Password
+    *Parameters :*
+    - email
+    - password
 
-*Response :*
-``` json
-{
-    "error": false,
-    "data": {
-        "_id": "577006e44a7b7b7111b4601f",
-        "password": "bcrypt hashed password",
-        "email": "email@example.com",
-        "name": "antoine"
-    },
-    "token": "jsonwebtoken generated"
-}
-```
+    *Response :*
+    ``` json
+    {
+        "error": false,
+        "data": {
+            "_id": "577006e44a7b7b7111b4601f",
+            "password": "bcrypt hashed password",
+            "email": "email@example.com",
+            "name": "antoine"
+        },
+        "token": "jsonwebtoken generated"
+    }
+    ```
 
-#### Registration
+* **Registration**
 
-**<code>POST</code> /register**
+    **<code>POST</code> /register**
 
-*Parameters :*
-- Name
-- Email
-- Password
+    *Parameters :*
+    - name
+    - email
+    - password
 
-#### Get users list
+#### Users list
 
 **<code>GET</code> /users**
 
 *Parameters :*
-- Token
+- token
 
 *Response :*
 ``` json
@@ -65,12 +65,12 @@ Every request require a token unless authentication and registration.*
 }
 ```
 
-#### Get user info
+#### User name
 
 **<code>GET</code> /users/:id**
 
 *Parameters :*
-- Token
+- token
 
 *Response :*
 ``` json
@@ -89,31 +89,57 @@ Every request require a token unless authentication and registration.*
 **<code>PATCH</code> /users/:id**
 
 *Parameters :*
-- Token
-- Password
+- token
+- password
 
 ## Snaps
 
 #### Send a snap
 
-URL | Method
-----|-------
-/snaps | POST
+**<code>POST</code> /snaps**
 
-Response :
+*Parameters :*
+- id_receiver
+- duration
+- token
+- snap (file)
 
 #### List snaps
 
-URL | Method
-----|-------
-/snaps | GET
+**<code>GET</code> /snaps**
 
-Response :
+*Parameters :*
+- token
+
+*Response :*
+``` json
+{
+  "error": false,
+  "data": [
+    {
+      "_id": "57702bb72d175c2b12dcfc51",
+      "url": "skate event.jpg",
+      "duration": 5,
+      "id_receiver": "577006e44a7b7b7111b4601f",
+      "id_sender": "576fe1864cc2b53d0d53d14f",
+      "watched": false
+    },
+    {
+      "_id": "57702bb92d175c2b12dcfc52",
+      "url": "skate event.jpg",
+      "duration": 5,
+      "id_receiver": "577006e44a7b7b7111b4601f",
+      "id_sender": "576fe1864cc2b53d0d53d14f",
+      "watched": false
+    }
+  ],
+  "token": null
+}
+```
 
 #### Mark a snap as viewed
 
-URL | Method
-----|-------
-/snaps/id | PATCH
+**<code>PATCH</code> /snaps/:id**
 
-Response :
+*Parameters :*
+- token
