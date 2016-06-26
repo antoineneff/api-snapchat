@@ -20,16 +20,27 @@ router.get('/', function (req, res) {
 
 // AUTHENTICATE
 router.post('/auth', function (req, res) {
-    User.find({ email: req.body.email }, function (err, user) {
-        if (err) {
+    User.findOne({ email: req.body.email }, function (err, user) {
+        if (user === null) {
             res.json({
-                error: err,
+                error: 'This email does not match any user',
                 data: null,
                 token: null
             });
         } else {
-            console.log(user);
-            // console.log(bcrypt.compareSync(req.body.password, user.password));
+            if (bcrypt.compareSync(req.body.password, user.password)) {
+                res.json({
+                    error: false,
+                    data: user,
+                    token: null
+                });
+            } else {
+                res.json({
+                    error: 'Wrong password',
+                    data: null,
+                    token: null
+                });
+            }
         }
     });
 });
