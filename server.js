@@ -1,11 +1,17 @@
+var config      = require('./config');
+
 var express     = require('express');
 var app         = express();
 var bodyParser  = require('body-parser');
+
 var mongoose    = require('mongoose');
 var User        = require('./app/models/user');
-var bcrypt      = require('bcrypt');
 
-mongoose.connect('mongodb://localhost/snapchat');
+var bcrypt      = require('bcrypt');
+var jwt         = require('jsonwebtoken');
+
+mongoose.connect(config.database);
+app.set('secret', config.secret);
 
 app.use(bodyParser.urlencoded({ extended:true }));
 app.use(bodyParser.json());
@@ -20,29 +26,34 @@ router.get('/', function (req, res) {
 
 // AUTHENTICATE
 router.post('/auth', function (req, res) {
-    User.findOne({ email: req.body.email }, function (err, user) {
-        if (user === null) {
-            res.json({
-                error: 'This email does not match any user',
-                data: null,
-                token: null
-            });
-        } else {
-            if (bcrypt.compareSync(req.body.password, user.password)) {
+    User.findOne({ email: req.body.email })
+        .select('+password')
+        .exec(function (err, user) {
+            if (user === null) {
                 res.json({
-                    error: false,
-                    data: user,
-                    token: null
-                });
-            } else {
-                res.json({
-                    error: 'Wrong password',
+                    error: 'This email does not match any user',
                     data: null,
                     token: null
                 });
+            } else {
+                if (bcrypt.compareSync(req.body.password, user.password)) {
+                    var token = jwt.sign(user, app.get('secret'), {
+                        expiresIn: '24h'
+                    });
+                    res.json({
+                        error: false,
+                        data: user,
+                        token: token
+                    });
+                } else {
+                    res.json({
+                        error: 'Wrong password',
+                        data: null,
+                        token: null
+                    });
+                }
             }
-        }
-    });
+        });
 });
 
 // REGISTER
@@ -118,6 +129,30 @@ router.post('/users', function (req, res) {
             });
         }
     });
+});
+
+router.use(function (req, res, next) {
+    var token = req.body.token || req.query.token || req.headers['x-access-token'];
+
+    if (token) {
+        jwt.verify(token, app.get('secret'), function (err, decoded) {
+            if (err) {
+                res.json({
+                    error: 'Failed to authenticate token',
+                    data: null,
+                    token: null
+                });
+            } else {
+                next();
+            }
+        });
+    } else {
+        res.status(403).json({
+            error: 'No token provided',
+            data: null,
+            token: null
+        });
+    }
 });
 
 // LIST ALL USERS
