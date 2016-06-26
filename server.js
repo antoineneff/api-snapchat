@@ -27,7 +27,7 @@ router.get('/', function (req, res) {
 // AUTHENTICATE
 router.post('/auth', function (req, res) {
     User.findOne({ email: req.body.email })
-        .select('+password')
+        .select('+password', '+email')
         .exec(function (err, user) {
             if (user === null) {
                 res.json({
@@ -131,6 +131,7 @@ router.post('/users', function (req, res) {
     });
 });
 
+// MIDDLEWARE CHECKING FOR TOKEN
 router.use(function (req, res, next) {
     var token = req.body.token || req.query.token || req.headers['x-access-token'];
 
@@ -176,7 +177,7 @@ router.get('/users', function (req, res) {
 
 // GET ONE USER
 router.get('/users/:id', function (req, res) {
-    User.find({ id: req.params.id }, function (err, user) {
+    User.findOne({ _id: req.params.id }, function (err, user) {
         if (err) {
             res.json({
                 error: err,
