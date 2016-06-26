@@ -3,9 +3,11 @@ var config      = require('./config');
 var express     = require('express');
 var app         = express();
 var bodyParser  = require('body-parser');
+var fileUpload  = require('express-fileupload');
 
 var mongoose    = require('mongoose');
 var User        = require('./app/models/user');
+var Snap        = require('./app/models/snap');
 
 var bcrypt      = require('bcrypt');
 var jwt         = require('jsonwebtoken');
@@ -15,6 +17,7 @@ app.set('secret', config.secret);
 
 app.use(bodyParser.urlencoded({ extended:true }));
 app.use(bodyParser.json());
+app.use(fileUpload());
 
 var port = 3000;
 
@@ -204,7 +207,7 @@ router.patch('/users/:id', function (req, res) {
             token: null
         });
     }
-    
+
     if (req.decoded._doc._id = req.params.id) {
         User.findOneAndUpdate({ _id: req.params.id}, { password: bcrypt.hashSync(req.body.password, 10) }, function (err, user) {
             if (err) {
@@ -234,11 +237,97 @@ router.patch('/users/:id', function (req, res) {
 // SEND A SNAP
 router.post('/snaps', function (req, res) {
 
+    // Check if a field is missing
+    var fields = ['id_receiver', 'duration'];
+    var missingFields = [];
+
+    fields.forEach(function (field) {
+        if (req.body[field] === undefined) {
+            missingFields.push(field);
+        }
+    });
+
+    if (missingFields.length > 0) {
+        return res.json({
+            error: 'Missing ' + missingFields,
+            data: null,
+            token: null
+        });
+    }
+
+    // Check if file is missing
+    if (req.files === null) {
+        return res.json({
+            error: 'Missing snap',
+            data: null,
+            token: null
+        });
+    }
+
+    User.find({ _id: req.body.id_receiver }, function (err, user) {
+        if (err) {
+            res.json({
+                error: 'Receiver does not exist',
+                data: null,
+                token: null
+            });
+        } else {
+
+            // Uploading image on server
+            var image = req.files.snap;
+            image.mv('./app/uploads/' + image.name, function (err) {
+                if (err) {
+                    res.status(500).json({
+                        error: err,
+                        data: null,
+                        token: null
+                    });
+                } else {
+                    // Adding snap in database
+                    var snap = new Snap();
+                    snap.id_sender = req.decoded._doc._id;
+                    snap.id_receiver = req.body.id_receiver;
+                    snap.duration = req.body.duration;
+                    snap.url = image.name;
+
+                    snap.save(function (err) {
+                        if (err) {
+                            res.json({
+                                error: err,
+                                data: null,
+                                token: null
+                            });
+                        } else {
+                            res.json({
+                                error: false,
+                                data: 'Your snap has been sended',
+                                token: null
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    });
 });
 
 // LIST ALL SNAPS RECEIVED (NOT WATCHED YET)
 router.get('/snaps', function (req, res) {
-
+    Snap.find({ id_receiver: req.decoded._doc._id, watched: false }, function (err, snaps) {
+        if (err) {
+            res.json({
+                error: err,
+                data: null,
+                token: null
+            });
+        } else {
+            res.json({
+                error: false,
+                data: snaps,
+                token: null
+            });
+        }
+    })
 });
 
 // CHANGE SNAP STATUS TO WATCHED
