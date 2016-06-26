@@ -48,29 +48,35 @@ router.post('/auth', function (req, res) {
 // REGISTER
 router.post('/users', function (req, res) {
 
-    if (req.body.name === undefined) {
+    // Check if a field is missing
+    var fields = ['name', 'email', 'password'];
+    var missingFields = [];
+
+    fields.forEach(function (field) {
+        if (req.body[field] === undefined) {
+            missingFields.push(field);
+        }
+    });
+
+    if (missingFields.length > 0) {
         return res.json({
-            error: 'Missing name',
-            data: null,
-            token: null
-        });
-    }
-    if (req.body.email === undefined) {
-        return res.json({
-            error: 'Missing email',
-            data: null,
-            token: null
-        });
-    }
-    if (req.body.password === undefined) {
-        return res.json({
-            error: 'Missing password',
+            error: 'Missing ' + missingFields,
             data: null,
             token: null
         });
     }
 
-    // Check if email already exists
+    // Check if email is valid
+    var regex = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
+    if (regex.test(req.body.email) === false) {
+        return res.json({
+            error: 'Email is not valid',
+            data: null,
+            token: null
+        });
+    }
+
+    // Check if name already exists
     User.find({ name: req.body.name}, function (err, user) {
         if (user.length >= 1) {
             res.json({
@@ -79,6 +85,7 @@ router.post('/users', function (req, res) {
                 token: null
             });
         } else {
+            // Check if email already exists
             User.find({ email: req.body.email}, function (err, user) {
                 if (user.length >= 1) {
                     res.json({
