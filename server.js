@@ -27,7 +27,7 @@ router.get('/', function (req, res) {
 // AUTHENTICATE
 router.post('/auth', function (req, res) {
     User.findOne({ email: req.body.email })
-        .select('+password', '+email')
+        .select('+password +email')
         .exec(function (err, user) {
             if (user === null) {
                 res.json({
@@ -144,6 +144,7 @@ router.use(function (req, res, next) {
                     token: null
                 });
             } else {
+                req.decoded = decoded;
                 next();
             }
         });
@@ -195,8 +196,38 @@ router.get('/users/:id', function (req, res) {
 });
 
 // UPDATE USER PASSWORD
-router.put('/users/:id', function (req, res) {
-
+router.patch('/users/:id', function (req, res) {
+    if (req.body.password === undefined) {
+        return res.json({
+            error: 'No new password provided',
+            data: null,
+            token: null
+        });
+    }
+    
+    if (req.decoded._doc._id = req.params.id) {
+        User.findOneAndUpdate({ _id: req.params.id}, { password: bcrypt.hashSync(req.body.password, 10) }, function (err, user) {
+            if (err) {
+                res.json({
+                    error: err,
+                    data: null,
+                    token: null
+                });
+            } else {
+                res.json({
+                    error: false,
+                    data: 'Password updated',
+                    token: null
+                });
+            }
+        });
+    } else {
+        res.json({
+            error: 'Updating password failed. Wrong token or id',
+            data: null,
+            token: null
+        });
+    }
 });
 
 
