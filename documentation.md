@@ -1,71 +1,119 @@
 # Api routes documentation
 
-*Documentation to use this api*
+*Documentation to use this api.
+Every request require a token unless authentication and registration.*
 
 ## Users
 
-### Authentication
+#### Authentication
 
-URL | Method
-----|-------
-/auth | POST
+**<code>POST</code> /auth**
 
-Response:
+*Parameters :*
+- Email
+- Password
 
-### Registration
+*Response :*
+``` json
+{
+    "error": false,
+    "data": {
+        "_id": "577006e44a7b7b7111b4601f",
+        "password": "bcrypt hashed password",
+        "email": "email@example.com",
+        "name": "antoine"
+    },
+    "token": "jsonwebtoken generated"
+}
+```
 
-URL | Method
-----|-------
-/register | POST
+#### Registration
 
-Response:
+**<code>POST</code> /register**
 
-### Get users list
+*Parameters :*
+- Name
+- Email
+- Password
 
-URL | Method
-----|-------
-/users | GET
+#### Get users list
 
-Response:
+**<code>GET</code> /users**
 
-### Get user info
+*Parameters :*
+- Token
 
-URL | Method
-----|-------
-/users/id | GET
+*Response :*
+``` json
+{
+    "error": false,
+    "data": [
+        {
+            "_id": "577006e44a7b7b7111b4601f",
+            "name": "antoine"
+        },
+        {
+            "_id": "577006e44a7b7b7111b4601f",
+            "name": "jean"
+        },
+        {
+            "_id": "577006e44a7b7b7111b4601f",
+            "name": "pierre"
+        }
+    ],
+    "token": null
+}
+```
 
-Response:
+#### Get user info
 
-### Change password
+**<code>GET</code> /users/:id**
 
-URL | Method
-----|-------
-/users/id | PATCH
+*Parameters :*
+- Token
 
-Response:
+*Response :*
+``` json
+{
+    "error": false,
+    "data": {
+        "_id": "577006e44a7b7b7111b4601f",
+        "name": "antoine"
+    },
+    "token": null
+}
+```
+
+#### Change password
+
+**<code>PATCH</code> /users/:id**
+
+*Parameters :*
+- Token
+- Password
 
 ## Snaps
 
-### Send a snap
+#### Send a snap
 
 URL | Method
 ----|-------
 /snaps | POST
 
-Response:
+Response :
 
-### List my snaps
+#### List snaps
 
 URL | Method
 ----|-------
 /snaps | GET
 
-Response:
+Response :
 
-### Mark a snap as viewed
+#### Mark a snap as viewed
 
 URL | Method
 ----|-------
 /snaps/id | PATCH
 
-Response:
+Response :
