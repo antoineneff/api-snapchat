@@ -332,28 +332,20 @@ router.get('/snaps', function (req, res) {
 
 // CHANGE SNAP STATUS TO WATCHED
 router.patch('/snaps/:id', function (req, res) {
-    Snap.findOneAndUpdate({ _id: req.params.id }, { watched: true }, function (err, snap) {
+    Snap.findOneAndUpdate({ _id: req.params.id, watched: false }, { watched: true }, function (err, snap) {
         if (err) {
             res.json({
-                error: 'Snap does not exist',
+                error: 'Snap does not exist or has already been watched',
                 data: null,
                 token: null
             });
         } else {
             if (snap.id_receiver === req.decoded._doc._id) {
-                if (snap.watched) {
-                    res.json({
-                        error: 'Snap has already been watched',
-                        data: null,
-                        token: null
-                    });
-                } else {
-                    res.json({
-                        error: false,
-                        data: 'Snap is now marked as watched',
-                        token: null
-                    });
-                }
+                res.json({
+                    error: false,
+                    data: 'Snap is now marked as watched',
+                    token: null
+                });
             } else {
                 res.json({
                     error: 'You are not the receiver of this snap',
