@@ -3,6 +3,7 @@ var app         = express();
 var bodyParser  = require('body-parser');
 var mongoose    = require('mongoose');
 var User        = require('./app/models/user');
+var bcrypt      = require('bcrypt');
 
 mongoose.connect('mongodb://localhost/snapchat');
 
@@ -17,21 +18,9 @@ router.get('/', function (req, res) {
     res.json({ message: 'hello, our api is working' });
 });
 
-
 // AUTHENTICATE
 router.post('/auth', function (req, res) {
-
-});
-
-
-// REGISTER
-router.post('/users', function (req, res) {
-    var user = new User();
-    user.name = req.body.name;
-    user.email = req.body.email;
-    user.password = req.body.password;
-
-    user.save(function (err) {
+    User.find({ email: req.body.email }, function (err, user) {
         if (err) {
             res.json({
                 error: err,
@@ -39,10 +28,75 @@ router.post('/users', function (req, res) {
                 token: null
             });
         } else {
+            console.log(user);
+            // console.log(bcrypt.compareSync(req.body.password, user.password));
+        }
+    });
+});
+
+// REGISTER
+router.post('/users', function (req, res) {
+
+    if (req.body.name === undefined) {
+        return res.json({
+            error: 'Missing name',
+            data: null,
+            token: null
+        });
+    }
+    if (req.body.email === undefined) {
+        return res.json({
+            error: 'Missing email',
+            data: null,
+            token: null
+        });
+    }
+    if (req.body.password === undefined) {
+        return res.json({
+            error: 'Missing password',
+            data: null,
+            token: null
+        });
+    }
+
+    // Check if email already exists
+    User.find({ name: req.body.name}, function (err, user) {
+        if (user.length >= 1) {
             res.json({
-                error: false,
-                data: 'You have been registered',
+                error: 'Name already taken',
+                data: null,
                 token: null
+            });
+        } else {
+            User.find({ email: req.body.email}, function (err, user) {
+                if (user.length >= 1) {
+                    res.json({
+                        error: 'Email already taken',
+                        data: null,
+                        token: null
+                    });
+                } else {
+                    var user = new User();
+                    user.name = req.body.name;
+                    user.email = req.body.email;
+                    user.password = bcrypt.hashSync(req.body.password, 10);
+
+                    user.save(function (err) {
+                        if (err) {
+                            res.json({
+                                error: err,
+                                data: null,
+                                token: null
+                            });
+                        } else {
+                            res.json({
+                                error: false,
+                                data: 'You have been registered',
+                                token: null
+                            });
+                        }
+                    });
+                }
             });
         }
     });
