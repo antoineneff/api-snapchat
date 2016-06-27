@@ -8,6 +8,7 @@ var fileUpload  = require('express-fileupload');
 var mongoose    = require('mongoose');
 var User        = require('./app/models/user');
 var Snap        = require('./app/models/snap');
+var Friend      = require('./app/models/friend');
 
 var bcrypt      = require('bcrypt');
 var jwt         = require('jsonwebtoken');
@@ -300,7 +301,7 @@ router.post('/snaps', function (req, res) {
                         } else {
                             res.json({
                                 error: false,
-                                data: 'Your snap has been sended',
+                                data: 'Your snap has been sent',
                                 token: null
                             });
                         }
@@ -360,12 +361,68 @@ router.patch('/snaps/:id', function (req, res) {
 
 // LIST ALL FRIENDS
 router.get('/friends', function (req, res) {
-
+    Friend.find(
+        { accepted: true },
+        { $or: [
+            { 'id_asking': req.decoded._doc._id },
+            { 'id_accepting': req.decoded._doc._id }
+        ]}, function (err, friends) {
+            if (err) {
+                res.json({
+                    error: err,
+                    data: null,
+                    token: null
+                });
+            } else {
+                res.json({
+                    error: false,
+                    data: friends,
+                    token: null
+                });
+            }
+        }
+    );
 });
 
 // ADD A FRIEND
 router.post('/friends', function (req, res) {
+    if (req.body.email === undefined) {
+        return res.json({
+            error: 'Missing id_user',
+            data: null,
+            token: null
+        });
+    }
 
+    User.findOne({ email: req.body.email }, function (err, user) {
+        if (err) {
+            res.json({
+                error: 'This email does not match any user',
+                data: null,
+                token: null
+            });
+        } else {
+            var friend = new Friend();
+            friend.id_asking = req.decoded._doc._id;
+            friend.id_user = user._id;
+
+            friend.save(function (err) {
+                if (err) {
+                    res.json({
+                        error: err,
+                        data: null,
+                        token: null
+                    });
+                } else {
+                    res.json({
+                        error: false,
+                        data: 'Your request has been sent',
+                        token: null
+                    });
+                }
+            });
+        }
+    });
 });
 
 // DELETE A FRIEND
@@ -375,7 +432,33 @@ router.delete('/friends/:id', function (req, res) {
 
 // LIST FRIENDS REQUESTS
 router.get('/friends/requests', function (req, res) {
-
+    Friend.find({ id_user: req.decoded._doc._id, accepted: false }, function (err, friends) {
+        if (err) {
+            return res.json({
+                error: err,
+                data: null,
+                token: null
+            });
+        } else {
+            users = [];
+            friends.forEach(function (friend) {
+                User.findOne({ _id: friend.id_asking }, function (err, user) {
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        console.log(user);
+                        users.push(user);
+                    }
+                });
+            });
+            console.log(users);
+            return res.json({
+                error: false,
+                data: users,
+                token: null
+            });
+        }
+    })
 });
 
 app.use('/api', router);
