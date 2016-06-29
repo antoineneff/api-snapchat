@@ -30,7 +30,7 @@ router.get('/', function (req, res) {
 // AUTHENTICATE
 router.post('/auth', function (req, res) {
     User.findOne({ email: req.body.email })
-        .select('+password +email')
+        .select('+password')
         .exec(function (err, user) {
             if (user === null) {
                 res.json({
@@ -360,27 +360,59 @@ router.patch('/snaps/:id', function (req, res) {
 
 // LIST ALL FRIENDS
 router.get('/friends', function (req, res) {
-    Friend.find(
-        { accepted: true },
-        { $or: [
-            { 'id_asking': req.decoded._doc._id },
-            { 'id_accepting': req.decoded._doc._id }
-        ]}, function (err, friends) {
-            if (err) {
-                res.json({
-                    error: err,
-                    data: null,
-                    token: null
-                });
-            } else {
+    Friend.find({
+        $and: [
+            { accepted: true },
+            { $or: [{ id_asking: req.decoded._doc._id }, { id_user: req.decoded._doc._id }]}
+        ]
+    }, function (err, friends) {
+        if (err) {
+            res.json({
+                error: err,
+                data: null,
+                token: null
+            });
+        } else {
+            var users = [];
+            var promises = [];
+            friends.forEach(function (friend) {
+                if (friend.id_user == req.decoded._doc._id) {
+                    var promise = User.findOne({ _id: friend.id_asking}, function (err, user) {
+                        if (err) {
+                            res.json({
+                                error: err,
+                                data: null,
+                                token: null
+                            });
+                        } else {
+                            users.push(user);
+                        }
+                    });
+                }
+                if (friend.id_asking == req.decoded._doc._id) {
+                    var promise = User.findOne({ _id: friend.id_user }, function (err, user) {
+                        if (err) {
+                            res.json({
+                                error: err,
+                                data: null,
+                                token: null
+                            });
+                        } else {
+                            users.push(user);
+                        }
+                    });
+                }
+                promises.push(promise);
+            });
+            Promise.all(promises).then(function (users) {
                 res.json({
                     error: false,
-                    data: friends,
+                    data: users,
                     token: null
                 });
-            }
+            });
         }
-    );
+    });
 });
 
 // ADD A FRIEND
@@ -463,7 +495,34 @@ router.get('/friends/requests', function (req, res) {
                 });
             });
         }
-    })
+    });
+});
+
+// ACCEPT FRIEND REQUEST
+router.post('/friends/requests/:id', function (req, res) {
+    Friend.findOneAndUpdate({ id_user: req.decoded._doc._id, id_asking: req.params.id, accepted: false }, { accepted: true }, function (err, friends) {
+        if (err) {
+            res.json({
+                error: err,
+                data: null,
+                token: null
+            });
+        } else {
+            if (friends === null) {
+                res.json({
+                    error: 'This request does not exist',
+                    data: null,
+                    token: null
+                });
+            } else {
+                res.json({
+                    error: false,
+                    data: 'You accepted the friend request',
+                    token: null
+                });
+            }
+            }
+    });
 });
 
 app.use('/api', router);
