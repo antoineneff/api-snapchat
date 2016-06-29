@@ -6,6 +6,7 @@ var bodyParser  = require('body-parser');
 var fileUpload  = require('express-fileupload');
 
 var mongoose    = require('mongoose');
+mongoose.Promise = global.Promise;
 var User        = require('./app/models/user');
 var Snap        = require('./app/models/snap');
 var Friend      = require('./app/models/friend');
@@ -19,8 +20,6 @@ app.set('secret', config.secret);
 app.use(bodyParser.urlencoded({ extended:true }));
 app.use(bodyParser.json());
 app.use(fileUpload());
-
-var port = 3000;
 
 var router = express.Router();
 
@@ -388,7 +387,7 @@ router.get('/friends', function (req, res) {
 router.post('/friends', function (req, res) {
     if (req.body.email === undefined) {
         return res.json({
-            error: 'Missing id_user',
+            error: 'Missing email',
             data: null,
             token: null
         });
@@ -434,28 +433,34 @@ router.delete('/friends/:id', function (req, res) {
 router.get('/friends/requests', function (req, res) {
     Friend.find({ id_user: req.decoded._doc._id, accepted: false }, function (err, friends) {
         if (err) {
-            return res.json({
+            res.json({
                 error: err,
                 data: null,
                 token: null
             });
         } else {
-            users = [];
+            var users = [];
+            var promises = [];
             friends.forEach(function (friend) {
-                User.findOne({ _id: friend.id_asking }, function (err, user) {
+                var promise = User.findOne({ _id: friend.id_asking }, function (err, user) {
                     if (err) {
-                        console.log(err);
+                        res.json({
+                            error: err,
+                            data: null,
+                            token: null
+                        });
                     } else {
-                        console.log(user);
                         users.push(user);
                     }
                 });
+                promises.push(promise);
             });
-            console.log(users);
-            return res.json({
-                error: false,
-                data: users,
-                token: null
+            Promise.all(promises).then(function (users) {
+                return res.json({
+                    error: false,
+                    data: users,
+                    token: null
+                });
             });
         }
     })
@@ -463,5 +468,5 @@ router.get('/friends/requests', function (req, res) {
 
 app.use('/api', router);
 
-app.listen(port);
-console.log('Application running on : http://localhost:' + port + '/api');
+app.listen(config.port);
+console.log('Application running on : http://localhost:' + config.port + '/api');
