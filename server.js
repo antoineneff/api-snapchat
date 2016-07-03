@@ -40,12 +40,12 @@ router.post('/auth', function (req, res) {
                 });
             } else {
                 if (bcrypt.compareSync(req.body.password, user.password)) {
-                    var jwtObject = {
+                    var user = {
                         id: user._id,
                         name: user.name,
                         email: user.email
                     };
-                    var token = jwt.sign(jwtObject, app.get('secret'), {
+                    var token = jwt.sign(user, app.get('secret'), {
                         expiresIn: '24h'
                     });
                     res.json({
