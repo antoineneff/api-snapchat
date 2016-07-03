@@ -40,7 +40,12 @@ router.post('/auth', function (req, res) {
                 });
             } else {
                 if (bcrypt.compareSync(req.body.password, user.password)) {
-                    var token = jwt.sign(user, app.get('secret'), {
+                    var jwtObject = {
+                        id: user._id,
+                        name: user.name,
+                        email: user.email
+                    };
+                    var token = jwt.sign(jwtObject, app.get('secret'), {
                         expiresIn: '24h'
                     });
                     res.json({
@@ -208,7 +213,7 @@ router.patch('/users/:id', function (req, res) {
         });
     }
 
-    if (req.decoded._doc._id = req.params.id) {
+    if (req.decoded.id = req.params.id) {
         User.findOneAndUpdate({ _id: req.params.id}, { password: bcrypt.hashSync(req.body.password, 10) }, function (err, user) {
             if (err) {
                 res.json({
@@ -285,7 +290,7 @@ router.post('/snaps', function (req, res) {
                 } else {
                     // Adding snap in database
                     var snap = new Snap();
-                    snap.id_sender = req.decoded._doc._id;
+                    snap.id_sender = req.decoded.id;
                     snap.id_receiver = req.body.id_receiver;
                     snap.duration = req.body.duration;
                     snap.url = image.name;
@@ -313,7 +318,7 @@ router.post('/snaps', function (req, res) {
 
 // LIST ALL SNAPS RECEIVED (NOT WATCHED YET)
 router.get('/snaps', function (req, res) {
-    Snap.find({ id_receiver: req.decoded._doc._id, watched: false }, function (err, snaps) {
+    Snap.find({ id_receiver: req.decoded.id, watched: false }, function (err, snaps) {
         if (err) {
             res.json({
                 error: err,
@@ -340,7 +345,7 @@ router.patch('/snaps/:id', function (req, res) {
                 token: null
             });
         } else {
-            if (snap.id_receiver === req.decoded._doc._id) {
+            if (snap.id_receiver === req.decoded.id) {
                 res.json({
                     error: false,
                     data: 'Snap is now marked as watched',
@@ -363,7 +368,7 @@ router.get('/friends', function (req, res) {
     Friend.find({
         $and: [
             { accepted: true },
-            { $or: [{ id_asking: req.decoded._doc._id }, { id_user: req.decoded._doc._id }]}
+            { $or: [{ id_asking: req.decoded.id }, { id_user: req.decoded.id }]}
         ]
     }, function (err, friends) {
         if (err) {
@@ -376,7 +381,7 @@ router.get('/friends', function (req, res) {
             var users = [];
             var promises = [];
             friends.forEach(function (friend) {
-                if (friend.id_user == req.decoded._doc._id) {
+                if (friend.id_user == req.decoded.id) {
                     var promise = User.findOne({ _id: friend.id_asking}, function (err, user) {
                         if (err) {
                             res.json({
@@ -389,7 +394,7 @@ router.get('/friends', function (req, res) {
                         }
                     });
                 }
-                if (friend.id_asking == req.decoded._doc._id) {
+                if (friend.id_asking == req.decoded.id) {
                     var promise = User.findOne({ _id: friend.id_user }, function (err, user) {
                         if (err) {
                             res.json({
@@ -433,11 +438,7 @@ router.post('/friends', function (req, res) {
                 token: null
             });
         } else {
-            var friend = new Friend();
-            friend.id_asking = req.decoded._doc._id;
-            friend.id_user = user._id;
-
-            friend.save(function (err) {
+            Friend.findOne({ id_asking: req.decoded.id, id_user: user._id }, function (err, friend) {
                 if (err) {
                     res.json({
                         error: err,
@@ -445,11 +446,33 @@ router.post('/friends', function (req, res) {
                         token: null
                     });
                 } else {
-                    res.json({
-                        error: false,
-                        data: 'Your request has been sent',
-                        token: null
-                    });
+                    if (friend !== null) {
+                        res.json({
+                            error: 'You already sent a friend request to this email',
+                            data: null,
+                            token: null
+                        });
+                    } else {
+                        var friend = new Friend();
+                        friend.id_asking = req.decoded.id;
+                        friend.id_user = user._id;
+
+                        friend.save(function (err) {
+                            if (err) {
+                                res.json({
+                                    error: err,
+                                    data: null,
+                                    token: null
+                                });
+                            } else {
+                                res.json({
+                                    error: false,
+                                    data: 'Your request has been sent',
+                                    token: null
+                                });
+                            }
+                        });
+                    }
                 }
             });
         }
@@ -458,12 +481,40 @@ router.post('/friends', function (req, res) {
 
 // DELETE A FRIEND
 router.delete('/friends/:id', function (req, res) {
-
+    Friend.find({
+        $and: [
+            { accepted: true },
+            { $or: [{ id_asking: req.params.id, id_user: req.decoded.id }, { id_user: req.params.id, id_asking: req.decoded.id }]}
+        ]
+    }, function (err, friend) {
+        if (err) {
+            res.json({
+                error: err,
+                data: null,
+                token: null
+            });
+        } else {
+            if (friend.length === 0) {
+                res.json({
+                    error: 'Friend does not exist',
+                    data: null,
+                    token: null
+                });
+            } else {
+                console.log(friend);
+                res.json({
+                    error: false,
+                    data: 'Friend deleted',
+                    token: null
+                });
+            }
+        }
+    }).remove().exec();
 });
 
 // LIST FRIENDS REQUESTS
 router.get('/friends/requests', function (req, res) {
-    Friend.find({ id_user: req.decoded._doc._id, accepted: false }, function (err, friends) {
+    Friend.find({ id_user: req.decoded.id, accepted: false }, function (err, friends) {
         if (err) {
             res.json({
                 error: err,
@@ -500,7 +551,7 @@ router.get('/friends/requests', function (req, res) {
 
 // ACCEPT FRIEND REQUEST
 router.post('/friends/requests/:id', function (req, res) {
-    Friend.findOneAndUpdate({ id_user: req.decoded._doc._id, id_asking: req.params.id, accepted: false }, { accepted: true }, function (err, friends) {
+    Friend.findOneAndUpdate({ id_user: req.decoded.id, id_asking: req.params.id, accepted: false }, { accepted: true }, function (err, friend) {
         if (err) {
             res.json({
                 error: err,
@@ -508,7 +559,7 @@ router.post('/friends/requests/:id', function (req, res) {
                 token: null
             });
         } else {
-            if (friends === null) {
+            if (friend === null) {
                 res.json({
                     error: 'This request does not exist',
                     data: null,
