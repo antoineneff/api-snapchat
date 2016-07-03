@@ -26,6 +26,8 @@ Every request require a token unless authentication and registration.*
     }
     ```
 
+---
+
 #### Registration
 
 * **<code>POST</code> /register**
@@ -34,6 +36,8 @@ Every request require a token unless authentication and registration.*
     - name
     - email
     - password
+
+---
 
 #### Users list
 
@@ -67,6 +71,8 @@ Every request require a token unless authentication and registration.*
     }
     ```
 
+---
+
 #### User name
 
 * **<code>GET</code> /users/:id**
@@ -87,6 +93,8 @@ Every request require a token unless authentication and registration.*
     }
     ```
 
+---
+
 #### Change password
 
 * **<code>PATCH</code> /users/:id**
@@ -106,6 +114,8 @@ Every request require a token unless authentication and registration.*
     - duration
     - token
     - snap (file)
+
+---
 
 #### List snaps
 
@@ -139,6 +149,8 @@ Every request require a token unless authentication and registration.*
         "token": null
     }
     ```
+
+---
 
 #### Mark a snap as viewed
 
@@ -177,6 +189,8 @@ Every request require a token unless authentication and registration.*
     }
     ```
 
+---
+
 ### Add a friend
 
 * **<code>POST</code> /friends**
@@ -184,6 +198,8 @@ Every request require a token unless authentication and registration.*
     *Parameters :*
     - token
     - email
+
+---
 
 ### List friend requests
 
@@ -212,12 +228,16 @@ Every request require a token unless authentication and registration.*
     }
     ```
 
+---
+
 ### Accept friend request
 
 * **<code>POST</code> /friends/requests/:id**
 
     *Parameters :*
     - token
+
+---
 
 ### Delete a friend
 
